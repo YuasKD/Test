@@ -54,6 +54,14 @@ jobs:
       #    sudo mkswap /swapfile
       #    sudo swapon /swapfile
 
+      - name: Check Memory and Swap
+        run: |
+           echo "当前内存和交换空间使用情况："
+           free -h
+           echo "---------------------------"
+           echo "已启用的交换空间设备："
+           swapon --show
+
       - name: Initialization environment
         env:
           DEBIAN_FRONTEND: noninteractive
