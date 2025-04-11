@@ -18,6 +18,10 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      actor:
+        description: 'Triggering user'
+        required: true
   schedule:
     - cron: 0 */18 * * *
 
@@ -26,43 +30,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check Actor
+        run: |
+          if [ "${{ github.actor }}" != "repository_owner" ]; then
+            echo "Only the repository owner can trigger this workflow manually."
+            exit 1
+          fi
 
-    - name: Get Commit Hash
-      id: getHash
-      run: |
-        git clone --depth 1 $REPO_URL -b $REPO_BRANCH .
-        echo "commitHash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      - name: Get Commit Hash
+        id: getHash
+        run: |
+          git clone --depth 1 $REPO_URL -b $REPO_BRANCH .
+          echo "commitHash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-    - name: Compare Commit Hash
-      id: cacheHash
-      uses: actions/cache@v3
-      with:
-        path: .commitHash
-        key: commitHash_${{ steps.getHash.outputs.commitHash }}
+      - name: Compare Commit Hash
+        id: cacheHash
+        uses: actions/cache@v3
+        with:
+          path: .commitHash
+          key: commitHash_${{ steps.getHash.outputs.commitHash }}
 
-    - name: Save New Commit Hash
-      if: steps.cacheHash.outputs.cache-hit != 'true'
-      run: |
-        echo ${{ steps.getHash.outputs.commitHash }} | tee .commitHash
+      - name: Save New Commit Hash
+        if: steps.cacheHash.outputs.cache-hit != 'true'
+        run: |
+          echo ${{ steps.getHash.outputs.commitHash }} | tee .commitHash
 
-    - name: Trigger build
-      if: steps.cacheHash.outputs.cache-hit != 'true'
-      uses: peter-evans/repository-dispatch@v2
-      with:
-        token: ${{ secrets.ACTION }}
-        event-type: Source Code Update
-        # 显式传递参数到 openwrt-builder.yml
-        client-payload: |
-          {
-            "repository_owner": "immortalwrt",
-            "repository_name": "immortalwrt",
-            "repository_branch": "master"
-          }
-    
-    - name: Delete workflow runs
-      uses: Mattraks/delete-workflow-runs@v2
-      with:
-        repository: ${{ github.repository }}
-        token: ${{ secrets.ACTION }}
-        retain_days: 0
-        keep_minimum_runs: 2
+      - name: Trigger build
+        if: steps.cacheHash.outputs.cache-hit != 'true'
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.ACTION }}
+          event-type: Source Code Update
+          # 显式传递参数到 openwrt-builder.yml
+          client-payload: |
+            {
+              "repository_owner": "immortalwrt",
+              "repository_name": "immortalwrt",
+              "repository_branch": "master"
+            }
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.ACTION }}
+          retain_days: 0
+          keep_minimum_runs: 2
