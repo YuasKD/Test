@@ -2,8 +2,12 @@ name: OpenWrt Builder
 
 on:
   repository_dispatch:
+    types: [repository_dispatch]
   workflow_dispatch:
     inputs:
+      actor:
+        description: 'Triggering user'
+        required: true
       repository_owner:
         description: '仓库所有人'
         required: false
