@@ -25,7 +25,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.sender.login == github.repository_owner
     env:
       # 兼容两种触发方式：手动触发（workflow_dispatch）和自动触发（repository_dispatch）
       REPO_URL: "https://github.com/${{ github.event.inputs.repository_owner || github.event.client_payload.repository_owner }}/${{ github.event.inputs.repository_name || github.event.client_payload.repository_name }}"
@@ -42,6 +41,14 @@ jobs:
       TZ: Asia/Shanghai
 
     steps:
+
+      - name: Check Actor
+        run: |
+          if [ "${{ github.actor }}" != "repository_owner" ]; then
+            echo "Only the repository owner can trigger this workflow manually."
+            exit 1
+          fi
+          
       - name: Checkout
         uses: actions/checkout@main
 
